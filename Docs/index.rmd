@@ -1,0 +1,6 @@
+---
+title: "Midterm"
+author: "Jazmín Calimano Colón"
+date: "`r Sys.Date()`"
+output: html_document
+---
