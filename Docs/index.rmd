@@ -4,3 +4,53 @@ author: "Jazmín Calimano Colón"
 date: "`r Sys.Date()`"
 output: html_document
 ---
+
+# Part II. Web Scraping
+
+## Question 1: Scrape a table.
+
+To begin I am uploading the libraries required for scraping a table from Wikipedia. I'll be using rvest for the webscraping, tidyverse for data cleaning and transformations, janitor to clean up the column names, and stringr for string manipulation. The link to the wikitable was saved into an `html` object.
+
+```{r message=FALSE, warning=FALSE}
+library(rvest)
+library(tidyverse)
+library(janitor)
+library(stringr)
+
+html <- read_html("https://en.wikipedia.org/wiki/Community_areas_of_Chicago")
+```
+
+Here the first table from the wikipedia page was extracted because it was the table containing the information we were interested in (community names and population). Then the column names were cleaned and I narrowed the full table down to the relevant columns. 
+The first row containing unnecessary info and the last row with the citywide totals were removed, leaving us with just 77 rows. Then I used stringr to clean the data and make population numeric.
+```{r}
+ca_table <- html |> 
+  html_element("table.wikitable") |> 
+  html_table() |> 
+  clean_names() |> 
+  select(no, name, population)
+
+
+ca_table <- ca_table[-c(1, 79), ]
+
+ca_table$name <- ca_table$name |> 
+  str_remove("\\[\\d+\\]")
+
+ca_table$population <- ca_table$population |> 
+  str_remove_all(",")
+
+ca_table$population <- as.numeric(ca_table$population)
+
+nrow(ca_table)
+head(ca_table)
+```
+
+Then 
+
+```{r}
+ca_table |> 
+  filter(no == 24)
+
+ca_table |>
+  slice_max(order_by = population, n = 5)
+```
+
