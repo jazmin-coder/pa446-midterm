@@ -20,23 +20,22 @@ library(stringr)
 html <- read_html("https://en.wikipedia.org/wiki/Community_areas_of_Chicago")
 ```
 
-Here the first table from the wikipedia page was extracted because it was the table containing the information we were interested in (community names and population). Then the column names were cleaned and I narrowed the full table down to the relevant columns. 
-The first row containing unnecessary info and the last row with the citywide totals were removed, leaving us with just 77 rows. Then I used stringr to clean the data and make population numeric.
+
 ```{r}
 ca_table <- html |> 
-  html_element("table.wikitable") |> 
+  html_element("table.wikitable") |> #extracting first table from wikipedia page
   html_table() |> 
-  clean_names() |> 
-  select(no, name, population)
+  clean_names() |> #keep names in lowercase
+  select(no, name, population) #keep relevant columns
 
 
-ca_table <- ca_table[-c(1, 79), ]
+ca_table <- ca_table[-c(1, 79), ] #remove the rows with repeated info and the citywide totals
 
 ca_table$name <- ca_table$name |> 
-  str_remove("\\[\\d+\\]")
+  str_remove("\\[\\d+\\]") #removing the brackets from the names list
 
 ca_table$population <- ca_table$population |> 
-  str_remove_all(",")
+  str_remove_all(",") #remove commas from the population row then covert to numeric
 
 ca_table$population <- as.numeric(ca_table$population)
 
@@ -44,13 +43,45 @@ nrow(ca_table)
 head(ca_table)
 ```
 
-Then 
-
+Then here I am filtering for the single row of West Town and the communities with the highest populations.
 ```{r}
 ca_table |> 
   filter(no == 24)
 
 ca_table |>
   slice_max(order_by = population, n = 5)
+```
+## Question 2: Scrape with CSS selectors. 
+
+In this section I am scraping a website called 
+```{r}
+html2 <- read_html("https://books.toscrape.com/") #read the url for scraping and save into object
+
+section <- html2 |> 
+  html_elements("li.col-xs-6.col-sm-4.col-md-3.col-lg-3") 
+#save the repeating section that contains the info
+
+title <- section |> 
+  html_element("h3") |> #extracting the title
+  html_text2()
+
+price <-  section |> 
+  html_element("p.price_color") |> #extracting each book price
+  html_text2()
+
+availability <- section |> 
+  html_element("p.instock.availability") |> #extracting the availability
+  html_text2()
+
+books <- tibble( #creating a tibble from the previous objects
+  title,
+  price,
+  availability
+)
+
+nrow(books)
+head(books)
+
+write.csv(books, "books.csv") #saving the table into the documents folder
 ```
 
