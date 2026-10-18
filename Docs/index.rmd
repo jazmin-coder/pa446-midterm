@@ -7,7 +7,7 @@ output: html_document
 
 # Part II. Web Scraping
 
-## Question 1: Scrape a table.
+Question 1: Scrape a table.
 
 To begin I am uploading the libraries required for scraping a table from Wikipedia. I'll be using rvest for the webscraping, tidyverse for data cleaning and transformations, janitor to clean up the column names, and stringr for string manipulation. The link to the wikitable was saved into an `html` object.
 
@@ -51,9 +51,9 @@ ca_table |>
 ca_table |>
   slice_max(order_by = population, n = 5)
 ```
-## Question 2: Scrape with CSS selectors. 
 
-In this section I am scraping a website called 
+Question 2: Scrape with CSS selectors. 
+
 ```{r}
 html2 <- read_html("https://books.toscrape.com/") #read the url for scraping and save into object
 
@@ -85,3 +85,57 @@ head(books)
 write.csv(books, "books.csv") #saving the table into the documents folder
 ```
 
+
+# Part III. Open Data API
+
+```{r}
+library(httr) # send requests (GET(), POST())
+library(jsonlite) # parse JSON into data frames/lists
+
+#saving the link from the city of chicago data portal
+url <- "https://data.cityofchicago.org/resource/v6vf-nfxy.json"
+
+#establishing the parameters to include the variables and values we are interested in
+#saving them in an object
+params <- list(
+  'community_area' = 24,
+  '$limit' = 1000,
+  '$where' = "created_date >= '2026-01-01T00:00:00'", 
+  '$order' = "created_date DESC",
+  '$select' = "community_area, status, sr_type, created_date, closed_date"
+)
+
+#fetchning a response from the API using GET() function
+res <- GET(url, query = params)
+
+#converting the object into a dataframe and flattening in case of nested data frames
+dat <- fromJSON(content(res, "text"), flatten = TRUE)
+
+nrow(dat)
+names(dat)
+```
+4. Interpret. [2 points] In 2 to 3 sentences, say what this summary suggests about service needs in 
+West Town and name one thing the data cannot tell you. 
+```{r}
+dat |> 
+  group_by(sr_type) |> 
+  summarise(total_requests = n()) |> 
+  arrange(desc(total_requests)) |> 
+  slice_head(n = 10)
+```
+
+The most common complaints in West Town have to do with graffiti, which are a nuisance if you are a shop owner, and an overall desire to have orderly and clean streets. Parking code enforcements, potholes, sign repairs, fused street lights, abandoned vehicles, and tree obstructions all make it dangerous especially when you are driving in the area. This dataset, however, doesn't tell us where exactly the complaint can be found or who made it.
+
+
+BONUS
+```{r}
+library(lubridate) #for date/time conversion functions
+
+dat |> 
+  filter(status == "Completed") |> #filtering by complete and then converting UNIX timestamp to date object
+  mutate(days_between = as_date(as_datetime(closed_date)) - as_date(as_datetime(created_date))) |> 
+  group_by(sr_type) |> #grouping by complaint and then calculating the median
+  summarise(median_days = round(median(days_between))) |> 
+  arrange(desc(median_days)) |> 
+  slice_head(n = 5)
+```
