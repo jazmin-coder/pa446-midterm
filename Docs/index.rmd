@@ -7,7 +7,7 @@ output: html_document
 
 # Part II. Web Scraping
 
-## Question 1: Scrape a table.
+Question 1: Scrape a table.
 
 To begin I am uploading the libraries required for scraping a table from Wikipedia. I'll be using rvest for the webscraping, tidyverse for data cleaning and transformations, janitor to clean up the column names, and stringr for string manipulation. The link to the wikitable was saved into an `html` object.
 
@@ -51,7 +51,7 @@ ca_table |>
 ca_table |>
   slice_max(order_by = population, n = 5)
 ```
-## Question 2: Scrape with CSS selectors. 
+Question 2: Scrape with CSS selectors. 
 
 In this section I am scraping a website called 
 ```{r}
