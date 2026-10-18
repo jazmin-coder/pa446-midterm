@@ -139,3 +139,110 @@ dat |>
   arrange(desc(median_days)) |> 
   slice_head(n = 5)
 ```
+
+# Part IV. Census API
+
+Step 1: Identify the variables. 
+• Gross Rent as a Percentage of Household Income, “Total”: B25070_001E 
+• Gross Rent as a Percentage of Household Income, "50.0 percent or more": B25070_010E
+• Median Household Income: B19013_001
+
+Step 2: Retrieve the data.
+```{r}
+
+library(tidycensus)
+library(tidyverse)
+
+acs <- load_variables(2024, "acs5")
+
+rent <- get_acs(
+  geography = "county", #getting the acs data by county level for 2024 5-year estimates
+  variables = c(rent_total = "B25070_001",
+                rent_half = "B25070_010", 
+                hh_income = "B19013_001"),
+  year = 2024,
+  state = "Ohio"
+  )
+```
+
+Step 3: Clean and transform.
+```{r}
+rent <- rent |>
+  select(-moe) |> 
+  pivot_wider(names_from = "variable", #pivoting the data so that each variable has one column and 
+              values_from = "estimate") |> #each county is on one row
+  mutate(severe_burden_rate = (rent_half / rent_total) * 100) |>  #creating burden rate variable
+  arrange(desc(severe_burden_rate))
+
+head(rent)
+
+rent <- rent |> 
+  separate(NAME, into = c("county", "state"), sep = "\\,") #bonus question, separating the column name
+
+head(rent)
+```
+
+Step 4: Analyze.
+```{r}
+rent |> #computing the mean and median severe burden rate across counties
+  mutate(median_sbr = round(median(severe_burden_rate)),
+         mean_sbr = round(mean(severe_burden_rate))) |> 
+  head()
+
+#making the county variable into a factor and ordering them by the burden rate for both the 
+#lowest and highest values
+library(forcats) # load the library for ordering variables
+rent_max <- rent |> 
+  mutate(county = fct_reorder(county, severe_burden_rate)) |> 
+  slice_max(severe_burden_rate, n = 5) |> 
+  head()    #counties with the highest rates
+
+rent_min <- rent |> 
+  mutate(county = fct_reorder(county, desc(severe_burden_rate))) |> 
+  slice_min(severe_burden_rate, n = 5)#counties with the lowest rates
+```
+
+Step 5: Visualize. [5 points] 
+```{r}
+library(ggplot2)
+
+rent |> 
+  ggplot(aes(x = hh_income, y = severe_burden_rate)) +
+  geom_point() + # Scatterplot of median household income against severe_burden_rate 
+  geom_smooth(method = "lm", color = "darkgreen") + #adding a regression line with standard error
+  xlab("Median Household Income") +
+  ylab("Severely Burdened Household Rates") +
+  labs(title = "Median household incomes per Ohio county and the rate of renters who are severely burdened") +
+  theme_bw()
+```
+
+```{r}
+#Bar chart of the top 5 and bottom 5 counties in Ohio. Using factor reordered data
+rent_max |> 
+  ggplot(aes(county, severe_burden_rate)) + 
+   geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    ylab("Severe Burden Rate for Renters") +
+    labs(title = "Ohio counties with the highest rate of burdened renters") +
+    theme_bw()
+
+rent_min |> 
+   ggplot(aes(county, severe_burden_rate)) + 
+   geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    ylab("Severe Burden Rate for Renters") +
+    labs(title = "Ohio counties with the lowest rate of burdened renters") +
+    theme_bw()
+```
+
+Step 6: Reflect. [4 points] 
+
+1. What relationship do you see between income and severe rent burden in Ohio, and what might 
+explain it?
+There seems to be an inverse relationship between the amount of household income in Ohio with the rate of burdened renters. The rent must be high in places with comparably low wages, where individuals are forced to then use most of their income on rent. Those who are severely burdened also seem to be in the majority of the counties.
+
+2. What are two limitations of using county-level ACS estimates to decide where to target rental 
+assistance?
+The county level is too large of a geographical area to make targeted policy changes. It would be more useful to use zip codes or block levels to narrow down the specific groups of people who need rental assistance. Narrowing down the scope of the area can also help in identifying a potential cause for the high rates of burden.
