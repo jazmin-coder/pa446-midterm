@@ -243,8 +243,6 @@ The county level is too large of a geographical area to make targeted policy cha
 
 # Part V. Civic Data Ethics
 
-Answer each question in 100 to 150 words. Refer to the data you worked with in this exam.
-
 1.  Privacy. [5 points] The 311 dataset includes the street address and coordinates of each request. Suppose you wanted to publish a map of West Town requests on your GitHub Page. Identify one privacy risk, then explain how you would apply one de-identification technique before publishing.
 
 If I created a map where one could easily locate where each 311 was located, it would pose a risk to the people who lived near the street address and coordinates of the request. It would be easier for a skilled technologist with ill intentions to identify people or businesses the requests are associated to and use that information for personal gain. 
