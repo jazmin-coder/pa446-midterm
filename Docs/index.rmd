@@ -9,17 +9,14 @@ output: html_document
 
 Question 1: Scrape a table.
 
-To begin I am uploading the libraries required for scraping a table from Wikipedia. I'll be using rvest for the webscraping, tidyverse for data cleaning and transformations, janitor to clean up the column names, and stringr for string manipulation. The link to the wikitable was saved into an `html` object.
-
 ```{r message=FALSE, warning=FALSE}
-library(rvest)
-library(tidyverse)
-library(janitor)
-library(stringr)
+library(rvest) #webscraping
+library(tidyverse) #data manipulation
+library(janitor) #cleaning column names
+library(stringr) #string manipulation
 
 html <- read_html("https://en.wikipedia.org/wiki/Community_areas_of_Chicago")
 ```
-
 
 ```{r}
 ca_table <- html |> 
@@ -43,16 +40,15 @@ nrow(ca_table)
 head(ca_table)
 ```
 
-Then here I am filtering for the single row of West Town and the communities with the highest populations.
 ```{r}
-ca_table |> 
+ca_table |> #filtering for West Town
   filter(no == 24)
 
-ca_table |>
+ca_table |> #showing communities with the highest populations
   slice_max(order_by = population, n = 5)
 ```
 
-Question 2: Scrape with CSS selectors. 
+Question 2: Scrape with CSS selectors.
 
 ```{r}
 html2 <- read_html("https://books.toscrape.com/") #read the url for scraping and save into object
@@ -85,7 +81,6 @@ head(books)
 write.csv(books, "books.csv") #saving the table into the documents folder
 ```
 
-
 # Part III. Open Data API
 
 ```{r}
@@ -114,8 +109,9 @@ dat <- fromJSON(content(res, "text"), flatten = TRUE)
 nrow(dat)
 names(dat)
 ```
-4. Interpret. [2 points] In 2 to 3 sentences, say what this summary suggests about service needs in 
-West Town and name one thing the data cannot tell you. 
+
+4.  Interpret. [2 points] In 2 to 3 sentences, say what this summary suggests about service needs in West Town and name one thing the data cannot tell you.
+
 ```{r}
 dat |> 
   group_by(sr_type) |> 
@@ -126,8 +122,8 @@ dat |>
 
 The most common complaints in West Town have to do with graffiti, which are a nuisance if you are a shop owner, and an overall desire to have orderly and clean streets. Parking code enforcements, potholes, sign repairs, fused street lights, abandoned vehicles, and tree obstructions all make it dangerous especially when you are driving in the area. This dataset, however, doesn't tell us where exactly the complaint can be found or who made it.
 
-
 BONUS
+
 ```{r}
 library(lubridate) #for date/time conversion functions
 
@@ -142,19 +138,16 @@ dat |>
 
 # Part IV. Census API
 
-Step 1: Identify the variables. 
-• Gross Rent as a Percentage of Household Income, “Total”: B25070_001E 
-• Gross Rent as a Percentage of Household Income, "50.0 percent or more": B25070_010E
-• Median Household Income: B19013_001
+Step 1: Identify the variables. • Gross Rent as a Percentage of Household Income, “Total”: B25070_001E • Gross Rent as a Percentage of Household Income, "50.0 percent or more": B25070_010E • Median Household Income: B19013_001
 
 Step 2: Retrieve the data.
+
 ```{r}
 
 library(tidycensus)
 library(tidyverse)
 
-acs <- load_variables(2024, "acs5")
-
+readRenviron("~/.Renviron")
 rent <- get_acs(
   geography = "county", #getting the acs data by county level for 2024 5-year estimates
   variables = c(rent_total = "B25070_001",
@@ -166,6 +159,7 @@ rent <- get_acs(
 ```
 
 Step 3: Clean and transform.
+
 ```{r}
 rent <- rent |>
   select(-moe) |> 
@@ -183,6 +177,7 @@ head(rent)
 ```
 
 Step 4: Analyze.
+
 ```{r}
 rent |> #computing the mean and median severe burden rate across counties
   mutate(median_sbr = round(median(severe_burden_rate)),
@@ -202,7 +197,8 @@ rent_min <- rent |>
   slice_min(severe_burden_rate, n = 5)#counties with the lowest rates
 ```
 
-Step 5: Visualize. [5 points] 
+Step 5: Visualize.
+
 ```{r}
 library(ggplot2)
 
@@ -237,12 +233,33 @@ rent_min |>
     theme_bw()
 ```
 
-Step 6: Reflect. [4 points] 
+Step 6: Reflect.
 
-1. What relationship do you see between income and severe rent burden in Ohio, and what might 
-explain it?
+1.  What relationship do you see between income and severe rent burden in Ohio, and what might explain it? 
 There seems to be an inverse relationship between the amount of household income in Ohio with the rate of burdened renters. The rent must be high in places with comparably low wages, where individuals are forced to then use most of their income on rent. Those who are severely burdened also seem to be in the majority of the counties.
 
-2. What are two limitations of using county-level ACS estimates to decide where to target rental 
-assistance?
-The county level is too large of a geographical area to make targeted policy changes. It would be more useful to use zip codes or block levels to narrow down the specific groups of people who need rental assistance. Narrowing down the scope of the area can also help in identifying a potential cause for the high rates of burden.
+2.  What are two limitations of using county-level ACS estimates to decide where to target rental assistance? 
+The county level is too large of a geographical area to make targeted policy changes. It would be more useful to use zip codes or block levels to narrow down the specific groups of people who need rental assistance. Narrowing down the scope of the area can also help in identifying a potential cause for the high rates of burden. 
+
+# Part V. Civic Data Ethics
+
+Answer each question in 100 to 150 words. Refer to the data you worked with in this exam.
+
+1.  Privacy. [5 points] The 311 dataset includes the street address and coordinates of each request. Suppose you wanted to publish a map of West Town requests on your GitHub Page. Identify one privacy risk, then explain how you would apply one de-identification technique before publishing.
+
+If I created a map where one could easily locate where each 311 was located, it would pose a risk to the people who lived near the street address and coordinates of the request. It would be easier for a skilled technologist with ill intentions to identify people or businesses the requests are associated to and use that information for personal gain. 
+To de-identify the dataset, I would aggregate the complaints by community number rather than using a specific address or name. In this way, the information and the message remains the same, but it provides an additional layer of protection for the individuals in the data.
+
+
+2.  Bias and data quality. [5 points] 311 data shows where people report problems, which is not always where problems exist. Explain how this could mislead a city manager who assigns repair crews by request counts, and describe one way to check for or reduce that bias.
+
+Sadly, civic data can reinforce existing prejudices within the people it is trying to help. If many requests are coming from a wealthier neighborhood like West Town, it could further exacerbate the inequalities in response time that other less wealthy neighborhoods experience on a daily basis. For example, if a wealthier neighborhood is getting a lot of complaints from many individuals for the same problem, it doesn't necessarily mean it is a big problem; it is just getting more attention. There could exist an even bigger problem in a less wealthy neighborhood, but it can go unreported for reasons related to access, such as lack of internet, or a feeling of resignation because that's just the way it's always been. 
+To ensure equal distribution, it's necessary for city managers to check their preexisting bias before any decisions benefit some communities more than others. City managers would have to go where the data is missing to understand why it is so in the first place. 
+
+
+3.  Scraping responsibly. [5 points] Using the criteria discussed in Week 5, explain whether the scraping you did in Part II was appropriate. Then describe one civic data situation where you should not scrape without further review.
+
+The web scraping in Part II was appropriate because it involved public, non-personable, and factual data. It involved information that anybody could easily find on Wikipedia and from websites made specifically for practicing web scraping. 
+It would be unethical to web scrape websites that require you to create a profile because those pages usually include interacting with others who share personally identifiable information. To participate with a website that requires you to create a profile, you are willingly acknowledging their terms of agreement, and so you would be obliged to follow their rules to keep users and copyright data safe.
+
+AI USE STATEMENT: Used Gemini to correct syntax in Part III specifically for the parameters list. The quotation mark placements in httr are unusual. No AI was used elsewere.
